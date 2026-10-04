@@ -59,17 +59,25 @@ export const App: React.FC = () => {
   }
 
   const handleSaveInputs = (newInputs: AttendanceInputState) => {
+    const saved = saveStoredAttendanceState(newInputs)
     setInputs(newInputs)
-    saveStoredAttendanceState(newInputs)
-    setToastMessage('Attendance updated successfully.')
+    setToastMessage(
+      saved
+        ? 'Attendance updated successfully.'
+        : 'Attendance updated, but could not be saved on this device.',
+    )
     setTimeout(() => setToastMessage(null), 4000)
   }
 
   const handleResetToBaseline = () => {
     clearStoredAttendanceState()
+    const saved = saveStoredAttendanceState(initialAttendanceInputs)
     setInputs(initialAttendanceInputs)
-    saveStoredAttendanceState(initialAttendanceInputs)
-    setToastMessage('Reset to baseline (208 / 244 regular, 10 / 10 ECE).')
+    setToastMessage(
+      saved
+        ? 'Reset to baseline (208 / 244 regular, 10 / 10 ECE).'
+        : 'Reset in this session, but could not save the baseline on this device.',
+    )
     setTimeout(() => setToastMessage(null), 4000)
   }
 
