@@ -14,6 +14,7 @@ import { TargetSafety } from './components/TargetSafety'
 import { WhatHappensNext } from './components/WhatHappensNext'
 import { EcaSection } from './components/EcaSection'
 import { UpdateAttendanceSheet } from './components/UpdateAttendanceSheet'
+import { Analytics } from '@vercel/analytics/react'
 
 export const App: React.FC = () => {
   // Load initial inputs from localStorage or default baseline
@@ -195,6 +196,9 @@ export const App: React.FC = () => {
         currentInputs={inputs}
         onSave={handleSaveInputs}
       />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   )
 }
