@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ATTEND</string>
+    <string name="title_activity_main">ATTEND</string>
+    <string name="package_name">app.attend.companion</string>
+    <string name="custom_url_scheme">app.attend.companion</string>
+</resources>

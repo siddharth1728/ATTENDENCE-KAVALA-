@@ -1,4 +1,9 @@
-export type Status = 'SAFE' | 'WATCH' | 'AT RISK' | 'CRITICAL' | 'NO DATA'
+import type {
+  AttendanceStatus,
+  CategoryAttendance,
+  CustomWhatIf,
+  ScenarioOutcome,
+} from './types'
 
 export function sanitizeNumber(value: number): number {
   if (!Number.isFinite(value)) return 0
@@ -26,7 +31,7 @@ export function calculateAfterAttendance(
   const safeHeld = sanitizeNumber(held)
   const safeFutureClasses = sanitizeNumber(futureClasses)
 
-  if (safeHeld <= 0) return 0
+  if (safeHeld + safeFutureClasses <= 0) return 0
   return ((safeAttended + safeFutureClasses) / (safeHeld + safeFutureClasses)) * 100
 }
 
@@ -39,29 +44,14 @@ export function calculateAfterAbsence(
   const safeHeld = sanitizeNumber(held)
   const safeFutureClasses = sanitizeNumber(futureClasses)
 
-  if (safeHeld <= 0) return 0
+  if (safeHeld + safeFutureClasses <= 0) return 0
   return (safeAttended / (safeHeld + safeFutureClasses)) * 100
-}
-
-export function calculateMixedScenario(
-  attended: number,
-  held: number,
-  futureClasses: number,
-  futureAttended: number,
-): number {
-  const safeAttended = sanitizeNumber(attended)
-  const safeHeld = sanitizeNumber(held)
-  const safeFutureClasses = sanitizeNumber(futureClasses)
-  const safeFutureAttended = sanitizeNumber(futureAttended)
-
-  if (safeHeld <= 0) return 0
-  return ((safeAttended + safeFutureAttended) / (safeHeld + safeFutureClasses)) * 100
 }
 
 export function calculateClassesNeeded(
   attended: number,
   held: number,
-  target: number,
+  target: number = 75,
 ): number | null {
   const safeAttended = sanitizeNumber(attended)
   const safeHeld = sanitizeNumber(held)
@@ -82,7 +72,7 @@ export function calculateClassesNeeded(
 export function calculateSafeAbsences(
   attended: number,
   held: number,
-  target: number,
+  target: number = 75,
 ): number {
   const safeAttended = sanitizeNumber(attended)
   const safeHeld = sanitizeNumber(held)
@@ -90,140 +80,233 @@ export function calculateSafeAbsences(
 
   if (safeHeld <= 0 || safeTarget <= 0) return 0
 
+  const currentPercent = calculateAttendance(safeAttended, safeHeld)
+  if (currentPercent < safeTarget) return 0
+
   const value = (100 * safeAttended - safeTarget * safeHeld) / safeTarget
   return value <= 0 ? 0 : Math.floor(value)
-}
-
-export function calculateMaximumPossible(
-  attended: number,
-  held: number,
-  remainingClasses: number,
-): number {
-  const safeAttended = sanitizeNumber(attended)
-  const safeHeld = sanitizeNumber(held)
-  const safeRemaining = sanitizeNumber(remainingClasses)
-
-  if (safeHeld <= 0) return 0
-  return ((safeAttended + safeRemaining) / (safeHeld + safeRemaining)) * 100
-}
-
-export function calculateMinimumPossible(
-  attended: number,
-  held: number,
-  remainingClasses: number,
-): number {
-  const safeAttended = sanitizeNumber(attended)
-  const safeHeld = sanitizeNumber(held)
-  const safeRemaining = sanitizeNumber(remainingClasses)
-
-  if (safeHeld <= 0 && safeRemaining <= 0) return 0
-  return (safeAttended / (safeHeld + safeRemaining)) * 100
-}
-
-export function calculateExpectedFinal(
-  attended: number,
-  held: number,
-  remainingClasses: number,
-  expectedAttendanceRate: number,
-): number {
-  const safeAttended = sanitizeNumber(attended)
-  const safeHeld = sanitizeNumber(held)
-  const safeRemaining = sanitizeNumber(remainingClasses)
-  const rate = sanitizeNumber(expectedAttendanceRate)
-
-  if (safeHeld <= 0 && safeRemaining <= 0) return 0
-
-  const expectedFutureAttended = safeRemaining * (rate / 100)
-  return ((safeAttended + expectedFutureAttended) / (safeHeld + safeRemaining)) * 100
 }
 
 export function calculateRecoveryClasses(
   attended: number,
   held: number,
-  target: number,
+  target: number = 75,
 ): number {
   const needed = calculateClassesNeeded(attended, held, target)
   return needed === null ? 0 : needed
 }
 
-export function calculateTargetReachability(
-  attended: number,
-  held: number,
-  target: number,
-  remainingClasses: number,
-): {
-  maxPossible: number
-  minRemainingToAttend: number | null
-  reachable: boolean
-} {
-  const safeTarget = sanitizeNumber(target)
-  const safeHeld = sanitizeNumber(held)
-  const safeRemaining = sanitizeNumber(remainingClasses)
-  const safeAttended = sanitizeNumber(attended)
-
-  const maxPossible = calculateMaximumPossible(safeAttended, safeHeld, safeRemaining)
-  const reachable = maxPossible >= safeTarget
-
-  let minRemainingToAttend: number | null = null
-  if (reachable && safeTarget > 0 && safeTarget < 100) {
-    const needed = Math.ceil((safeTarget * (safeHeld + safeRemaining) - 100 * safeAttended) / 100)
-    minRemainingToAttend = Math.max(0, needed)
-  }
-
-  return { maxPossible, minRemainingToAttend, reachable }
+export function deriveStatus(
+  attendance: number,
+  target: number = 75,
+): AttendanceStatus {
+  if (!Number.isFinite(attendance)) return 'BELOW TARGET'
+  if (attendance >= target) return 'SAFE'
+  return 'BELOW TARGET'
 }
 
-export function calculateDailyImpact(attended: number, held: number) {
-  const current = calculateAttendance(attended, held)
-  const oneAttendanceImpact = calculateAttendance(attended + 1, held + 1) - current
-  const oneAbsenceImpact = calculateAttendance(attended, held + 1) - current
-  const ratio = Math.abs(oneAbsenceImpact) / Math.max(Math.abs(oneAttendanceImpact), 0.0001)
+export function formatPercent(value: number): string {
+  if (!Number.isFinite(value)) return '0.00%'
+  return `${value.toFixed(2)}%`
+}
+
+export function formatSignedPoints(value: number): string {
+  if (!Number.isFinite(value)) return '0.00 pts'
+  const sign = value >= 0 ? '+' : ''
+  return `${sign}${value.toFixed(2)} pts`
+}
+
+export function calculateCategoryAttendance(
+  category: 'REGULAR' | 'ECE',
+  attended: number,
+  held: number,
+  target: number = 75,
+): CategoryAttendance {
+  const safeAttended = sanitizeNumber(attended)
+  const safeHeld = sanitizeNumber(held)
+  const absent = calculateAbsenceCount(safeAttended, safeHeld)
+
+  if (safeHeld <= 0) {
+    return {
+      category,
+      name: category === 'REGULAR' ? 'Regular Attendance' : 'ECE / ECA Attendance',
+      held: 0,
+      attended: 0,
+      absent: 0,
+      percentage: 0,
+      status: 'BELOW TARGET',
+      safeAbsences: 0,
+      recoveryClasses: 0,
+      target,
+      boundarySafe: { absences: 0, percentage: 0 },
+      boundaryFail: { absences: 0, percentage: 0 },
+      nextAttendPercentage: 0,
+      nextMissPercentage: 0,
+      hasRecordedData: false,
+    }
+  }
+
+  const rawPercentage = calculateAttendance(safeAttended, safeHeld)
+  const percentage = Number(rawPercentage.toFixed(2))
+  const status = deriveStatus(rawPercentage, target)
+  const safeAbsences = calculateSafeAbsences(safeAttended, safeHeld, target)
+  const recoveryClasses = calculateRecoveryClasses(safeAttended, safeHeld, target)
+
+  const boundarySafePct = calculateAttendance(safeAttended, safeHeld + safeAbsences)
+  const boundaryFailPct = calculateAttendance(safeAttended, safeHeld + safeAbsences + 1)
+
+  const nextAttendPercentage = calculateAfterAttendance(safeAttended, safeHeld, 1)
+  const nextMissPercentage = calculateAfterAbsence(safeAttended, safeHeld, 1)
 
   return {
-    current,
-    oneAttendanceImpact,
-    oneAbsenceImpact,
-    impactRatio: Number.isFinite(ratio) ? ratio : 0,
+    category,
+    name: category === 'REGULAR' ? 'Regular Attendance' : 'ECE / ECA Attendance',
+    held: safeHeld,
+    attended: safeAttended,
+    absent,
+    percentage,
+    status,
+    safeAbsences,
+    recoveryClasses,
+    target,
+    boundarySafe: {
+      absences: safeAbsences,
+      percentage: Number(boundarySafePct.toFixed(2)),
+    },
+    boundaryFail: {
+      absences: safeAbsences + 1,
+      percentage: Number(boundaryFailPct.toFixed(2)),
+    },
+    nextAttendPercentage: Number(nextAttendPercentage.toFixed(2)),
+    nextMissPercentage: Number(nextMissPercentage.toFixed(2)),
+    hasRecordedData: true,
   }
 }
 
-export function calculateWeeklyImpact(
+export function calculateScenario(
   attended: number,
   held: number,
-  weeklyClasses: number,
-  expectedRate: number,
-) {
-  const best = calculateExpectedFinal(attended, held, weeklyClasses, 100)
-  const expected = calculateExpectedFinal(attended, held, weeklyClasses, expectedRate)
-  const worst = calculateExpectedFinal(attended, held, weeklyClasses, 0)
+  classesCount: number,
+): ScenarioOutcome {
+  const safeAttended = sanitizeNumber(attended)
+  const safeHeld = sanitizeNumber(held)
+  const safeClasses = Math.max(1, sanitizeNumber(classesCount))
 
-  return { best, expected, worst }
+  if (safeHeld <= 0) {
+    return {
+      classes: safeClasses,
+      attendAllPercentage: 0,
+      missAllPercentage: 0,
+      attendAllDiff: 0,
+      missAllDiff: 0,
+    }
+  }
+
+  const currentDisplayPct = Number(
+    calculateAttendance(safeAttended, safeHeld).toFixed(2),
+  )
+  const attendAllPct = Number(
+    calculateAfterAttendance(safeAttended, safeHeld, safeClasses).toFixed(2),
+  )
+  const missAllPct = Number(
+    calculateAfterAbsence(safeAttended, safeHeld, safeClasses).toFixed(2),
+  )
+
+  return {
+    classes: safeClasses,
+    attendAllPercentage: attendAllPct,
+    missAllPercentage: missAllPct,
+    attendAllDiff: Number((attendAllPct - currentDisplayPct).toFixed(2)),
+    missAllDiff: Number((missAllPct - currentDisplayPct).toFixed(2)),
+  }
 }
 
-export function calculateSemesterProjection(
+export function calculateCustomWhatIf(
   attended: number,
   held: number,
-  remainingClasses: number,
-  expectedRate: number,
-) {
-  const current = calculateAttendance(attended, held)
-  const best = calculateExpectedFinal(attended, held, remainingClasses, 100)
-  const expected = calculateExpectedFinal(attended, held, remainingClasses, expectedRate)
-  const worst = calculateExpectedFinal(attended, held, remainingClasses, 0)
+  upcoming: number,
+  attend: number,
+  miss: number,
+  target: number = 75,
+): CustomWhatIf {
+  if (upcoming < 0 || attend < 0 || miss < 0) {
+    return {
+      upcoming,
+      attend,
+      miss,
+      projectedPercentage: 0,
+      diff: 0,
+      status: 'BELOW TARGET',
+      isValid: false,
+      errorMessage: 'Values cannot be negative.',
+    }
+  }
 
-  return { current, best, expected, worst }
+  if (attend + miss > upcoming) {
+    return {
+      upcoming,
+      attend,
+      miss,
+      projectedPercentage: 0,
+      diff: 0,
+      status: 'BELOW TARGET',
+      isValid: false,
+      errorMessage: 'Attend + Miss cannot exceed upcoming classes.',
+    }
+  }
+
+  const safeHeld = sanitizeNumber(held)
+  const safeAttended = sanitizeNumber(attended)
+
+  if (safeHeld + upcoming <= 0) {
+    return {
+      upcoming,
+      attend,
+      miss,
+      projectedPercentage: 0,
+      diff: 0,
+      status: 'BELOW TARGET',
+      isValid: true,
+    }
+  }
+
+  const currentDisplayPct = Number(
+    calculateAttendance(safeAttended, safeHeld).toFixed(2),
+  )
+  const projected = calculateAttendance(safeAttended + attend, safeHeld + upcoming)
+  const projectedPercentage = Number(projected.toFixed(2))
+  const diff = Number((projectedPercentage - currentDisplayPct).toFixed(2))
+  const status = deriveStatus(projected, target)
+
+  return {
+    upcoming,
+    attend,
+    miss,
+    projectedPercentage,
+    diff,
+    status,
+    isValid: true,
+  }
 }
 
-export function calculateAttendanceImpactRatio(attended: number, held: number): number {
-  return calculateDailyImpact(attended, held).impactRatio
-}
+export function validateAttendanceInput(
+  held: number,
+  attended: number,
+): { isValid: boolean; error?: string } {
+  if (!Number.isFinite(held) || !Number.isFinite(attended)) {
+    return { isValid: false, error: 'Please enter valid whole numbers.' }
+  }
 
-export function getAttendanceStatus(attendance: number, target: number): Status {
-  if (!Number.isFinite(attendance)) return 'NO DATA'
-  if (attendance <= 0 && Number.isFinite(target) && target > 0) return 'CRITICAL'
+  if (held < 0 || attended < 0) {
+    return { isValid: false, error: 'Classes cannot be negative.' }
+  }
 
-  if (attendance >= target + 10) return 'SAFE'
-  if (attendance >= target - 5) return 'WATCH'
-  if (attendance >= 60) return 'AT RISK'
-  return 'CRITICAL'
+  if (attended > held) {
+    return {
+      isValid: false,
+      error: 'Attended classes cannot be greater than classes held.',
+    }
+  }
+
+  return { isValid: true }
 }
