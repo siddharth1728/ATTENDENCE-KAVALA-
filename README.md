@@ -40,7 +40,7 @@ Regular classes and ECE/ECA have independent totals and calculations. One catego
 
 ### Update and save your totals
 
-Enter aggregate totals for classes held and attended. ATTEND validates the values, updates the calculations, and saves them on the current device. You can reset to the included demo baseline at any time.
+Enter aggregate totals for classes held and attended. ATTEND validates the values, updates the calculations, and saves them on the current device. The app starts at 0% with no attendance recorded; you can reset to this zero-attendance default at any time.
 
 ## Getting started
 
@@ -122,14 +122,7 @@ attendance percentage = attended classes / classes held × 100
 
 At 75% or above the status is **SAFE**. The safe-absence buffer is the greatest whole number of additional absences that keeps the percentage at or above 75%. If attendance is below the target, ATTEND calculates the consecutive attended classes needed to reach it.
 
-For the included demo baseline:
-
-| Category | Attended / held | Current | Safe absences |
-| --- | ---: | ---: | ---: |
-| Regular | 208 / 244 | 85.25% | 33 |
-| ECE/ECA | 10 / 10 | 100.00% | 3 |
-
-These are example values, not live institutional records. Use **Update Attendance** to enter your own totals.
+With no classes recorded, the app starts at 0% and prompts you to enter your own totals using **Update Attendance**. A zero-held total is treated as 0% until attendance is recorded.
 
 ## Privacy
 

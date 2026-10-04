@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { renderToString } from 'react-dom/server'
 import React from 'react'
 import { App } from './App'
+import { initialAttendanceInputs } from './data/initialData'
 import { AttendanceHero } from './components/AttendanceHero'
 import { TargetSafety } from './components/TargetSafety'
 import { WhatHappensNext } from './components/WhatHappensNext'
@@ -247,18 +248,21 @@ describe('ATTEND Prompt 04 Live Integration Tests', () => {
   /* ============================================================
      Full App Verification (Zero Subject/Timetable UI remnants)
      ============================================================ */
-  it('Full App renders primary single screen without subject cards or subject pages', () => {
+  it('Full App starts with zero attendance and renders onboarding without demo totals', () => {
     const html = getCleanHtml(<App />)
 
+    expect(initialAttendanceInputs).toEqual({
+      regularHeld: 0,
+      regularAttended: 0,
+      eceHeld: 0,
+      eceAttended: 0,
+    })
     expect(html).toContain('ATTEND')
-    expect(html).toContain('REGULAR ATTENDANCE')
-    expect(html).toContain('85.25%')
-    expect(html).toContain('208')
-    expect(html).toContain('244')
-    expect(html).toContain('75% TARGET')
-    expect(html).toContain('WHAT HAPPENS NEXT?')
-    expect(html).toContain('ECE / ECA ATTENDANCE')
-    expect(html).toContain('100.00%')
+    expect(html).toContain('Welcome to ATTEND')
+    expect(html).toContain('Attendance starts at 0.00%')
+    expect(html).toContain('Calculate My Attendance')
+    expect(html).not.toContain('85.25%')
+    expect(html).not.toContain('100.00%')
 
     // Absolutely NO subject remnants
     expect(html).not.toContain('All Subjects')

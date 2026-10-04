@@ -16,7 +16,7 @@ import { EcaSection } from './components/EcaSection'
 import { UpdateAttendanceSheet } from './components/UpdateAttendanceSheet'
 
 export const App: React.FC = () => {
-  // Load initial inputs from localStorage or default baseline
+  // Load initial inputs from localStorage or the zero-attendance default
   const storedState = useMemo(() => loadStoredAttendanceState(), [])
 
   const [inputs, setInputs] = useState<AttendanceInputState>(
@@ -75,8 +75,8 @@ export const App: React.FC = () => {
     setInputs(initialAttendanceInputs)
     setToastMessage(
       saved
-        ? 'Reset to baseline (208 / 244 regular, 10 / 10 ECE).'
-        : 'Reset in this session, but could not save the baseline on this device.',
+        ? 'Attendance reset to 0%.'
+        : 'Attendance reset to 0% for this session, but could not save it on this device.',
     )
     setTimeout(() => setToastMessage(null), 4000)
   }
@@ -112,8 +112,8 @@ export const App: React.FC = () => {
               Welcome to ATTEND
             </h2>
             <p className="onboarding-subtitle">
-              Enter your current attendance numbers to instantly know if you're safe
-              at 75% and calculate upcoming class scenarios.
+              Attendance starts at 0.00% with no classes recorded. Enter your current
+              totals to check your 75% position and calculate upcoming class scenarios.
             </p>
             <button
               type="button"
@@ -179,10 +179,10 @@ export const App: React.FC = () => {
             type="button"
             className="footer-reset-btn"
             onClick={handleResetToBaseline}
-            id="reset-baseline-btn"
-            title="Reset to 208/244 regular and 10/10 ECE baseline"
+            id="reset-default-btn"
+            title="Reset attendance to 0%"
           >
-            Reset to Baseline
+            Reset to 0%
           </button>
         </footer>
       </main>
